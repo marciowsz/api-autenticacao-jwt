@@ -1,0 +1,71 @@
+### Requisições de teste (extensão REST Client do VS Code ou IntelliJ HTTP Client)
+### Antes: copie .env.example para .env (o admin do .env é criado ao subir a API)
+@base = http://localhost:3000
+
+### 1) Registro público (sempre perfil "comum")
+POST {{base}}/register
+Content-Type: application/json
+
+{ "nome": "Ana Souza", "email": "ana@email.com", "senha": "SenhaForte123" }
+
+### 2) Login como usuário comum -> copie o "token"
+# @name loginComum
+POST {{base}}/login
+Content-Type: application/json
+
+{ "email": "ana@email.com", "senha": "SenhaForte123" }
+
+### 3) Login como admin (credenciais do .env)
+# @name loginAdmin
+POST {{base}}/login
+Content-Type: application/json
+
+{ "email": "admin@loja.com", "senha": "troque-esta-senha-123" }
+
+@tokenComum = {{loginComum.response.body.token}}
+@tokenAdmin = {{loginAdmin.response.body.token}}
+
+### 200 - rota privada com token
+GET {{base}}/perfil
+Authorization: Bearer {{tokenComum}}
+
+### 401 - rota privada sem token
+GET {{base}}/perfil
+
+### 401 - token inválido
+GET {{base}}/perfil
+Authorization: Bearer token.falso.123
+
+### 403 - usuário comum tentando excluir (RBAC)
+DELETE {{base}}/usuarios/1
+Authorization: Bearer {{tokenComum}}
+
+### 200 - admin listando usuários (sem senhas)
+GET {{base}}/usuarios
+Authorization: Bearer {{tokenAdmin}}
+
+### 204 - admin excluindo o usuário 2
+DELETE {{base}}/usuarios/2
+Authorization: Bearer {{tokenAdmin}}
+
+### 400 - tentar se registrar como admin
+POST {{base}}/register
+Content-Type: application/json
+
+{ "nome": "Hacker", "email": "hacker@email.com", "senha": "Senha12345", "perfil": "admin" }
+
+### 401 - senha errada
+POST {{base}}/login
+Content-Type: application/json
+
+{ "email": "ana@email.com", "senha": "SenhaErrada1" }
+
+### Produtos: leitura pública (Semana 6)
+GET {{base}}/produtos?page=1&limit=5&sort=preco&order=desc
+
+### Produtos: cadastro só admin
+POST {{base}}/produtos
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{ "sku": "CEL-999", "nome": "Smartphone Teste", "categoria": "eletronicos", "preco": 1999.9, "estoque": 5 }
